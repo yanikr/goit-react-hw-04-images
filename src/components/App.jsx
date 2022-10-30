@@ -4,7 +4,7 @@ import { searchImage } from './API/api';
 import { ModalWindow } from './Modal/Modal';
 import { LoadMoreBtn } from './Button/Button';
 import { Loader } from './Loader/Loader';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Notiflix from 'notiflix';
 
 export const App = () => {
@@ -44,9 +44,10 @@ export const App = () => {
     }
   };
 
-  const toggleModal = () => {
+  const toggleModal = useCallback(() => {
     setModal(!modal);
-  };
+  }, [modal]);
+
   const onImgClick = event => {
     const { source } = event.target.dataset;
     setLargeImg(source);
