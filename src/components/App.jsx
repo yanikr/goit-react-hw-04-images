@@ -1,84 +1,84 @@
-import { Component } from 'react';
 import { SearchBar } from './Searchbar/Searchbar';
 import { Gallery } from './ImageGallery/ImageGallery';
 import { searchImage } from './API/api';
 import { ModalWindow } from './Modal/Modal';
 import { LoadMoreBtn } from './Button/Button';
 import { Loader } from './Loader/Loader';
+import { useEffect, useState } from 'react';
+import Notiflix from 'notiflix';
 
-// import { Audio } from 'react-loader-spinner';
+export const App = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [modal, setModal] = useState(false);
+  const [largeImg, setLargeImg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-export class App extends Component {
-  state = {
-    searchQuery: '',
-    images: [],
-    page: 1,
-    modal: false,
-    largeImg: '',
-    isLoading: false,
+  useEffect(() => {
+    fetchData(searchQuery, page);
+  }, [searchQuery, page]);
+
+  const inputValue = input => {
+    setSearchQuery(input);
   };
 
-  inputValue = input => {
-    this.setState({ searchQuery: input });
-  };
-
-  async componentDidUpdate(prevProps, prevState) {
-    if (
-      this.state.searchQuery !== prevState.searchQuery ||
-      this.state.page !== prevState.page
-    ) {
-      this.setState({ isLoading: true });
-      const data = await searchImage(this.state.searchQuery, this.state.page)
-        .catch(err => console.log(err))
-        .finally(() => this.setState({ isLoading: false }));
-      if (this.state.page !== 1) {
-        this.setState(prevState => ({
-          images: [...prevState.images, ...data],
-        }));
-      } else {
-        this.setState({
-          images: [...data],
-        });
-      }
+  const fetchData = async (searchQuery, page) => {
+    if (!searchQuery) {
+      return;
     }
-  }
-  toggleModal = () => {
-    this.setState(({ modal }) => ({
-      modal: !modal,
-    }));
+    setIsLoading(true);
+    const data = await searchImage(searchQuery, page)
+      .catch(err => console.log(err))
+      .finally(() => setIsLoading(false));
+    if (data.length === 0) {
+      return Notiflix.Notify.failure(
+        'Sorry, no images found. Specify your request'
+      );
+    }
+
+    if (page !== 1) {
+      setImages(prevState => [...prevState, ...data]);
+    } else {
+      setImages([...data]);
+    }
   };
-  onImgClick = event => {
+
+  const toggleModal = () => {
+    setModal(!modal);
+  };
+  const onImgClick = event => {
     const { source } = event.target.dataset;
-    this.setState({ largeImg: source });
-    this.toggleModal();
+    setLargeImg(source);
+    toggleModal();
   };
 
-  submitted = value => {
-    this.setState({ searchQuery: value, page: 1 });
+  const submitted = value => {
+    setSearchQuery(value);
+    setPage(1);
   };
-  loadMore = async () => {
-    this.setState(prevState => ({ isLoading: true, page: prevState.page + 1 }));
+  const loadMore = () => {
+    setIsLoading(true);
+    setPage(prevState => prevState + 1);
   };
-  render() {
-    const { images, modal, largeImg, isLoading } = this.state;
-    return (
-      <>
-        <SearchBar submitted={this.submitted} inputValue={this.inputValue} />
 
-        {isLoading && <Loader />}
-        <Gallery hits={images} onImgClick={this.onImgClick} />
+  return (
+    <>
+      <SearchBar submitted={submitted} inputValue={inputValue} />
 
-        {modal && (
-          <ModalWindow onClose={this.toggleModal}>
-            <img src={largeImg} alt="" />
-          </ModalWindow>
-        )}
-        {images.length > 11 && (
-          <LoadMoreBtn type="button" loadMore={this.loadMore}>
-            load more
-          </LoadMoreBtn>
-        )}
-      </>
-    );
-  }
-}
+      {isLoading && <Loader />}
+      <Gallery hits={images} onImgClick={onImgClick} />
+
+      {modal && (
+        <ModalWindow onClose={toggleModal}>
+          <img src={largeImg} alt="" />
+        </ModalWindow>
+      )}
+      {images.length > 11 && (
+        <LoadMoreBtn type="button" loadMore={loadMore}>
+          load more
+        </LoadMoreBtn>
+      )}
+    </>
+  );
+};
